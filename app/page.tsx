@@ -172,6 +172,7 @@ export default function HomePage() {
     entity: any
   } | null>(null)
 
+  console.log(data)
   useEffect(() => {
     console.log("Updated Data in HomePage:", data);
   }, [data]);
@@ -180,16 +181,23 @@ export default function HomePage() {
     const id = `${type}-${Date.now()}`
     const newEntity = { ...entityData, id }
 
-    setData((prev) => ({
-      ...prev,
-      [`${type}s`]: [...(prev[`${type}s` as keyof typeof prev] as any[]), newEntity],
-    }))
+    setData((prev) => {
+      
+      const pluralType =
+        type === "person" ? "people" : (`${type}s` as keyof typeof prev);
+      const currentArray = (prev[pluralType] as any[]) || [];
+
+      return {
+        ...prev,
+        [pluralType]: [...currentArray, newEntity],
+      }
+    })
   }
 
 const handleEditEntity = (type: EntityType, entityData: any) => {
   console.log("Editing Entity:", type, entityData); // Debugging
   setData((prev) => {
-    // Handle special case for "person" -> "people"
+   
     const pluralType =
       type === "person" ? "people" : (`${type}s` as keyof typeof prev);
     const currentArray = (prev[pluralType] as any[]) || [];
@@ -203,7 +211,6 @@ const handleEditEntity = (type: EntityType, entityData: any) => {
   });
 };
 
-// const handleMoveEntity = (
 //   entityId: string,
 //   newParentId: string,
 //   entityType: EntityType
@@ -319,7 +326,6 @@ const handleEditEntity = (type: EntityType, entityData: any) => {
         <Card className="relative overflow-auto w-full h-full">
           <OrganizationChart
             data={data}
-            // onMoveEntity={handleMoveEntity}
             onEditEntity={openEditModal}
           />
         </Card>

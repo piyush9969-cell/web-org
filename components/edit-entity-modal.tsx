@@ -23,11 +23,30 @@ interface EditEntityModalProps {
 export default function EditEntityModal({ isOpen, onClose, onEdit, entityType, entity, data }: EditEntityModalProps) {
   const [formData, setFormData] = useState<any>({})
 console.log("Submitting Form Data:", formData);
+
   useEffect(() => {
     if (entity) {
       setFormData({ ...entity })
     }
   }, [entity])
+
+useEffect(() => {
+  if (!entity) return;
+
+  // Common fields
+  const newFormData: any = { ...entity };
+
+  // Only handle responsibilitiesRaw if this is a "circle"
+  if (entityType === "circle") {
+    //Converts array -> string
+    newFormData.responsibilitiesRaw = Array.isArray(entity.responsibilities)
+      ? entity.responsibilities.join(", ")
+      : entity.responsibilities || "";
+  }
+
+  setFormData(newFormData);
+}, [entity, entityType]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -147,7 +166,9 @@ console.log("Submitting Form Data:", formData);
               <Label htmlFor="teamId">Team</Label>
               <Select
                 value={formData.teamId || ""}
-                onValueChange={(value) => setFormData({ ...formData, teamId: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, teamId: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select team" />
@@ -166,7 +187,9 @@ console.log("Submitting Form Data:", formData);
               <Input
                 id="name"
                 value={formData.name || ""}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -174,27 +197,35 @@ console.log("Submitting Form Data:", formData);
               <Textarea
                 id="purpose"
                 value={formData.purpose || ""}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="responsibilities">Responsibilities (comma-separated)</Label>
-              <Textarea
-                id="responsibilities"
-                value={formData.responsibilities?.join(", ") || ""}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    responsibilities: e.target.value
-                      .split(",")
-                      .map((r) => r.trim())
-                      .filter((r) => r),
-                  })
+                  setFormData({ ...formData, purpose: e.target.value })
                 }
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="responsibilities">
+                Responsibilities (comma-separated)
+              </Label>
+              <Textarea
+                id="responsibilities"
+                
+                value={formData.responsibilitiesRaw || ""}
+                onChange={(e) => {
+                  const rawValue = e.target.value;
+                  // Converts string ➝ array (when editing data)
+                  setFormData({
+                    ...formData,
+                    responsibilitiesRaw: rawValue,
+                    responsibilities: rawValue
+                      .split(",")
+                      .map((r) => r.trim())
+                      .filter(Boolean),
+                  });
+                }}
+              />
+            </div>
           </>
-        )
+        );
 
       case "person":
         return (

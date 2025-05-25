@@ -27,9 +27,9 @@ export default function OrganizationChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomLevel = useRef(1);
-  const panOffset = useRef({ x: 0, y: 0 });
-  const isDragging = useRef(false);
-  const lastPanPoint = useRef({ x: 0, y: 0 });
+  const panOffset = useRef({ x: 0, y: 0 }); //current total pan distance.
+  const isDragging = useRef(false); //is the user currently dragging the chart?
+  const lastPanPoint = useRef({ x: 0, y: 0 });  //last mouse position when dragging started
 
   useEffect(() => {
     initializeMermaid();
@@ -45,12 +45,6 @@ export default function OrganizationChart({
     mermaid.initialize({
       startOnLoad: false,
       theme: "default",
-      flowchart: {
-        useMaxWidth: false,
-        htmlLabels: true,
-        curve: "basis",
-      },
-      securityLevel: "loose",
     });
   };
 
@@ -77,7 +71,16 @@ export default function OrganizationChart({
   };
 
   const generateMermaidDefinition = (data: OrganizationChartProps["data"]) => {
-    let definition = "flowchart TD\n";
+
+    //EG: TD means Top down
+    // flowchart TD 
+    //org1["🏢 Acme Corp<br/><small>NYC</small>"]:::organization
+    //org1 --> team1["👥 Engineering<br/><small>Lead: Alice</small>"]:::team
+    //team1 --> circle1["🎯 Platform<br/><small>Infrastructure</small>"]:::circle
+    //circle1 --> person1["👤 Bob<br/><small>DevOps</small>"]:::person
+
+
+    let definition = "flowchart TB\n";
 
     // Add organizations and their hierarchies
     data.organizations.forEach((org) => {
@@ -177,7 +180,10 @@ export default function OrganizationChart({
   const handleZoom = (e: WheelEvent) => {
     e.preventDefault();
 
+    //deltaY is positive when scrolling down (zoom out) and negative when scrolling up (zoom in)
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
+
+    // Ensure zoom level stays within bounds 10% to 300%
     const newZoom = Math.max(0.1, Math.min(3, zoomLevel.current * delta));
 
     if (newZoom !== zoomLevel.current) {
@@ -199,12 +205,15 @@ export default function OrganizationChart({
   const handlePanMove = (e: MouseEvent) => {
     if (!isDragging.current) return;
 
+    //calculate how far the mouse has moved
     const deltaX = e.clientX - lastPanPoint.current.x;
     const deltaY = e.clientY - lastPanPoint.current.y;
 
+    
     panOffset.current.x += deltaX;
     panOffset.current.y += deltaY;
 
+    //update the last pan point to the current mouse position
     lastPanPoint.current = { x: e.clientX, y: e.clientY };
     updateTransform();
   };
@@ -291,6 +300,9 @@ export default function OrganizationChart({
   };
 
   const findEntityFromNode = (nodeElement: SVGElement) => {
+    // Example:
+    // nodeElement.id = "flowchart-team1-12345"
+    // extractNodeId returns "team1"
     const nodeId = extractNodeId(nodeElement.id);
 
     // Search through all entity types
@@ -300,17 +312,20 @@ export default function OrganizationChart({
       () => findInCollection(data.circles, nodeId, "circle"),
       () => findInCollection(data.people, nodeId, "person"),
     ];
-
+    // Loop through search functions and return first successful result
     for (const searchFn of searchFunctions) {
       const result = searchFn();
       if (result.found) return result;
     }
-
+    // If no entity found, return a fallback response
     return { found: false, type: "person" as EntityType, data: null };
   };
 
   const extractNodeId = (fullNodeId: string) => {
-    // Remove common Mermaid prefixes
+    // Remove common Mermaid prefixes and suffixes
+    // Example:
+    // fullNodeId = "flowchart-team1-12345"
+    // returns "team1"
     return fullNodeId.includes("flowchart-")
       ? fullNodeId.replace(/^.*?flowchart-/, "").replace(/-\d+$/, "")
       : fullNodeId;
@@ -321,17 +336,23 @@ export default function OrganizationChart({
     nodeId: string,
     type: EntityType
   ) => {
+    // Try to find an entity in the collection whose id is included in nodeId or vice versa (bascially substring match from bothside/ a fuzzy match)
+    // Example:
+    // nodeId = "team1"
+    //An OR between:
+    //"team-growth".includes("flowchart-team-growth-12345"); // false
+    //"flowchart-team-growth-12345".includes("team-growth")  // true
+
     const entity = collection.find(
       (item) => nodeId.includes(item.id) || item.id.includes(nodeId)
     );
 
     return {
-      found: !!entity,
+      found: !!entity, //double exclamation marks convert the value to a boolean and check if it is truthy
       type,
       data: entity,
     };
   };
-
 
   return (
     <div className="w-full h-full bg-white relative">
@@ -349,8 +370,6 @@ export default function OrganizationChart({
         className="w-full h-[700px] overflow-hidden p-4 relative"
         style={{ minHeight: "700px" }}
       />
-
-     
     </div>
   );
 }
