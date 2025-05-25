@@ -670,5 +670,3 @@ const generateClassDefinitions = () => {
 - Teams contain Circles  
 - Circles contain People
 - Each entity must have a valid parent (except Organizations)
-
-This architecture provides a scalable foundation for organizational chart management with room for future enhancements like data persistence, user authentication, and advanced chart features.
