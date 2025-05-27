@@ -29,7 +29,7 @@ export default function OrganizationChart({
   const zoomLevel = useRef(1);
   const panOffset = useRef({ x: 0, y: 0 }); //current total pan distance.
   const isDragging = useRef(false); //is the user currently dragging the chart?
-  const lastPanPoint = useRef({ x: 0, y: 0 });  //last mouse position when dragging started
+  const lastPanPoint = useRef({ x: 0, y: 0 }); //last mouse position when dragging started
 
   useEffect(() => {
     initializeMermaid();
@@ -71,14 +71,12 @@ export default function OrganizationChart({
   };
 
   const generateMermaidDefinition = (data: OrganizationChartProps["data"]) => {
-
     //EG: TD means Top down
-    // flowchart TD 
+    // flowchart TD
     //org1["🏢 Acme Corp<br/><small>NYC</small>"]:::organization
     //org1 --> team1["👥 Engineering<br/><small>Lead: Alice</small>"]:::team
     //team1 --> circle1["🎯 Platform<br/><small>Infrastructure</small>"]:::circle
     //circle1 --> person1["👤 Bob<br/><small>DevOps</small>"]:::person
-
 
     let definition = "flowchart TB\n";
 
@@ -134,14 +132,15 @@ export default function OrganizationChart({
     return text && text.trim() ? text : fallback;
   };
 
-  const generateClassDefinitions = () => {
-    return `
-    classDef organization fill:#E3F2FD,stroke:#1976D2,stroke-width:3px,color:#000,cursor:pointer,rx:10,ry:10
-    classDef team fill:#E8F5E9,stroke:#388E3C,stroke-width:2px,color:#000,cursor:pointer,rx:10,ry:10
-    classDef circle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:#000,cursor:pointer,rx:10,ry:10
-    classDef person fill:#FFF3E0,stroke:#F57C00,stroke-width:2px,color:#000,cursor:pointer,rx:10,ry:10
+  // Alternative version with subtle brand colors
+const generateClassDefinitions = () => {
+  return `
+    classDef organization fill:#FEF2F2,stroke:#DC2626,stroke-width:3px,color:#1F2937,cursor:pointer,rx:12,ry:12,font-weight:600
+    classDef team fill:#F9FAFB,stroke:#374151,stroke-width:2px,color:#1F2937,cursor:pointer,rx:10,ry:10,font-weight:500
+    classDef circle fill:#F3F4F6,stroke:#6B7280,stroke-width:2px,color:#374151,cursor:pointer,rx:10,ry:10,font-weight:500
+    classDef person fill:#FFFFFF,stroke:#9CA3AF,stroke-width:2px,color:#4B5563,cursor:pointer,rx:8,ry:8,font-weight:400
   `;
-  };
+};
 
   const setupInteractivity = () => {
     if (!containerRef.current) return;
@@ -184,7 +183,7 @@ export default function OrganizationChart({
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
 
     // Ensure zoom level stays within bounds 10% to 300%
-    const newZoom = Math.max(0.1, Math.min(3, zoomLevel.current * delta));
+    const newZoom = Math.max(0.8, Math.min(3, zoomLevel.current * delta));
 
     if (newZoom !== zoomLevel.current) {
       zoomLevel.current = newZoom;
@@ -209,7 +208,6 @@ export default function OrganizationChart({
     const deltaX = e.clientX - lastPanPoint.current.x;
     const deltaY = e.clientY - lastPanPoint.current.y;
 
-    
     panOffset.current.x += deltaX;
     panOffset.current.y += deltaY;
 

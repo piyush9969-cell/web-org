@@ -1,357 +1,298 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Plus, Users, Building, Target, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import OrganizationChart from "@/components/organization-chart"
-import AddEntityModal from "@/components/add-entity-modal"
-import EditEntityModal from "@/components/edit-entity-modal"
+import { useEffect, useState } from "react";
+import { Menu, Shield, Home, Building, Heart,Star,Users,Briefcase,Code } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
-export interface Person {
-  id: string
-  name: string
-  role: string
-  email: string
-  department: string
-  circleId: string
-}
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-export interface Circle {
-  id: string
-  name: string
-  purpose: string
-  responsibilities: string[]
-  teamId: string
-}
-
-export interface Team {
-  id: string
-  name: string
-  description: string
-  lead: string
-  focus: string
-  organizationId: string
-}
-
-export interface Organization {
-  id: string
-  name: string
-  description: string
-  location: string
-  established: string
-  employees: number
-}
-
-export type EntityType = "organization" | "team" | "circle" | "person"
-
-const exampleData = [
-  { id: "org1", name: "Org A", type: "organization" },
-  { id: "team1", name: "Team Alpha", type: "team", parentId: "org1" },
-  { id: "team2", name: "Team Second", type: "team", parentId: "org1" },
-  { id: "circle1", name: "Circle X", type: "circle", parentId: "team1" },
-  { id: "circle2", name: "Circle y", type: "circle", parentId: "team2" },
-  { id: "person1", name: "Jane Doe", type: "person", parentId: "circle1" },
-  { id: "person2", name: "John Smith", type: "person", parentId: "circle2" },
-  { id: "person3", name: "Alice Johnson", type: "person", parentId: "circle1" },
-  
-
+const carouselData = [
+  {
+    id: 0,
+    title: "One of the Mega Diamond Clients",
+    subtitle: "Recognized for exceptional value and strategic importance.",
+    image:
+      "https://plus.unsplash.com/premium_photo-1664049362569-e65216ceb8ba?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    icon: Star, // Use any relevant icon
+  },
+  {
+    id: -1,
+    title: "20 Years of Client Partnership",
+    subtitle: "Building long-term, trusted relationships.",
+    image:
+      "https://images.unsplash.com/photo-1558522195-e1201b090344?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    icon: Users, // Use any relevant icon
+  },
+  {
+    id: -2,
+    title: "170+ Years of Trust",
+    subtitle: "Delivering end-to-end solutions that drive transformation.",
+    image:
+      "https://images.unsplash.com/photo-1531417666976-ed2bdbeb043b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    icon: Briefcase, // Use any relevant icon
+  },
+  {
+    id: -3,
+    title: "Modern Tech Stack Coverage",
+    subtitle: "Skilled across modern enterprise tech stacks.",
+    image:
+      "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    icon: Code, // Use any relevant icon
+  },
+  {
+    id: 2,
+    title: "Comprehensive Coverage",
+    subtitle: "Home, auto, business, and specialty insurance solutions",
+    image:
+      "https://images.unsplash.com/photo-1446776899648-aa78eefe8ed0?q=80&w=2944&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    icon: Home,
+  },
+  {
+    id: 4,
+    title: "Industry Leadership",
+    subtitle:
+      "The only property casualty company in the Dow Jones Industrial Average",
+    image:
+      "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    icon: Building,
+  },
 ];
 
 
-const initialData = {
-  organizations: [
-    {
-      id: "org-1",
-      name: "DU1 - Digital Innovation",
-      description: "Leading digital transformation initiatives",
-      location: "San Francisco, CA",
-      established: "2020",
-      employees: 150,
-    },
-    {
-      id: "org-2",
-      name: "DU2 - Product Development",
-      description: "Core product development and engineering",
-      location: "Austin, TX",
-      established: "2019",
-      employees: 200,
-    },
-  ],
-  teams: [
-    {
-      id: "team-1",
-      name: "Team Alpha",
-      description: "Frontend development and user experience",
-      lead: "Sarah Johnson",
-      focus: "User Interface",
-      organizationId: "org-1",
-    },
-    {
-      id: "team-2",
-      name: "Team Beta",
-      description: "Backend infrastructure and APIs",
-      lead: "Mike Chen",
-      focus: "Backend Systems",
-      organizationId: "org-1",
-    },
-    {
-      id: "team-3",
-      name: "Team Gamma",
-      description: "Data analytics and machine learning",
-      lead: "Dr. Emily Rodriguez",
-      focus: "Data Science",
-      organizationId: "org-2",
-    },
-  ],
-  circles: [
-    {
-      id: "circle-1",
-      name: "UI/UX Circle",
-      purpose: "Design and user experience optimization",
-      responsibilities: ["User Research", "Interface Design", "Prototyping"],
-      teamId: "team-1",
-    },
-    {
-      id: "circle-2",
-      name: "Frontend Circle",
-      purpose: "Frontend development and implementation",
-      responsibilities: ["React Development", "Component Library", "Performance"],
-      teamId: "team-1",
-    },
-    {
-      id: "circle-3",
-      name: "API Circle",
-      purpose: "Backend API development and maintenance",
-      responsibilities: ["REST APIs", "GraphQL", "Database Design"],
-      teamId: "team-2",
-    },
-  ],
-  people: [
-    {
-      id: "person-1",
-      name: "Alex Thompson",
-      role: "Senior UX Designer",
-      email: "alex.thompson@company.com",
-      department: "Design",
-      circleId: "circle-1",
-    },
-    {
-      id: "person-2",
-      name: "Jordan Kim",
-      role: "Frontend Developer",
-      email: "jordan.kim@company.com",
-      department: "Engineering",
-      circleId: "circle-2",
-    },
-    {
-      id: "person-3",
-      name: "Sam Wilson",
-      role: "Backend Engineer",
-      email: "sam.wilson@company.com",
-      department: "Engineering",
-      circleId: "circle-3",
-    },
-    {
-      id: "person-4",
-      name: "Casey Davis",
-      role: "Product Designer",
-      email: "casey.davis@company.com",
-      department: "Design",
-      circleId: "circle-1",
-    },
-  ],
-}
+const navigationItems = [
+  { name: "Home", href: "/" },
+  { name: "Insurance", href: "/insurance" },
+];
 
-export default function HomePage() {
-  const [data, setData] = useState(initialData)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editingEntity, setEditingEntity] = useState<{
-    type: EntityType
-    entity: any
-  } | null>(null)
+export default function LandingPage() {
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  console.log(data)
   useEffect(() => {
-    console.log("Updated Data in HomePage:", data);
-  }, [data]);
+    if (!api) {
+      return;
+    }
 
-  const handleAddEntity = (type: EntityType, entityData: any) => {
-    const id = `${type}-${Date.now()}`
-    const newEntity = { ...entityData, id }
+    setCurrent(api.selectedScrollSnap());
 
-    setData((prev) => {
-      
-      const pluralType =
-        type === "person" ? "people" : (`${type}s` as keyof typeof prev);
-      const currentArray = (prev[pluralType] as any[]) || [];
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
 
-      return {
-        ...prev,
-        [pluralType]: [...currentArray, newEntity],
-      }
-    })
-  }
+    // Auto-scroll functionality
+    const interval = setInterval(() => {
+      api.scrollNext();
+    }, 10000); // 10 seconds delay
 
-const handleEditEntity = (type: EntityType, entityData: any) => {
-  console.log("Editing Entity:", type, entityData); // Debugging
-  setData((prev) => {
-   
-    const pluralType =
-      type === "person" ? "people" : (`${type}s` as keyof typeof prev);
-    const currentArray = (prev[pluralType] as any[]) || [];
-
-    return {
-      ...prev,
-      [pluralType]: currentArray.map((item) =>
-        item.id === entityData.id ? entityData : item
-      ),
-    };
-  });
-};
-
-//   entityId: string,
-//   newParentId: string,
-//   entityType: EntityType
-// ) => {
-//   console.log("yooo")
-//   if (entityType === "person") {
-//     console.log(
-//       `Moving person with ID: ${entityId} to circle with ID: ${newParentId}`
-//     );
-//     setData((prev) => ({
-//       ...prev,
-//       people: prev.people.map((person) =>
-//         person.id === entityId ? { ...person, circleId: newParentId } : person
-//       ),
-//     }));
-//   } else if (entityType === "circle") {
-//     console.log(
-//       `Moving circle with ID: ${entityId} to team with ID: ${newParentId}`
-//     );
-//     setData((prev) => ({
-//       ...prev,
-//       circles: prev.circles.map((circle) =>
-//         circle.id === entityId ? { ...circle, teamId: newParentId } : circle
-//       ),
-//     }));
-//   } else if (entityType === "team") {
-//     console.log(
-//       `Moving team with ID: ${entityId} to organization with ID: ${newParentId}`
-//     );
-//     setData((prev) => ({
-//       ...prev,
-//       teams: prev.teams.map((team) =>
-//         team.id === entityId ? { ...team, organizationId: newParentId } : team
-//       ),
-//     }));
-//   }
-// };
-
-  const openEditModal = (type: EntityType, entity: any) => {
-    setEditingEntity({ type, entity })
-    setIsEditModalOpen(true)
-  }
+    return () => clearInterval(interval);
+  }, [api]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Organization Chart
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Visualize and manage your organizational structure
+    <div className="min-h-screen bg-white">
+      {/* Main Content */}
+      <main>
+        {/* Hero Section with Carousel */}
+        <section className="relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <Carousel
+              setApi={setApi}
+              className="w-full"
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+            >
+              <CarouselContent>
+                {carouselData.map((slide) => (
+                  <CarouselItem key={slide.id}>
+                    <Card className="border-0 bg-transparent shadow-none">
+                      <CardContent className="p-0">
+                        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+                          {/* Content */}
+                          <div className="space-y-8">
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-2xl">
+                              <slide.icon className="w-8 h-8 text-red-600" />
+                            </div>
+                            <div className="space-y-6">
+                              <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-900 leading-tight">
+                                {slide.title}
+                              </h1>
+                              <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
+                                {slide.subtitle}
+                              </p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                              <Button
+                                size="lg"
+                                className="bg-red-600 hover:bg-red-700 text-white px-8"
+                              >
+                                Get Started
+                              </Button>
+                              <Button
+                                size="lg"
+                                variant="outline"
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                Learn More
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Image */}
+                          <div className="relative">
+                            <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-gray-100">
+                              <Image
+                                src={slide.image || "/placeholder.svg"}
+                                alt={slide.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+
+              {/* Navigation Buttons */}
+              <CarouselPrevious className="absolute top-1/2 -translate-y-1/2 bg-white border-gray-200 text-red-700 hover:bg-red-500 hover:text-white shadow-lg" />
+              <CarouselNext className="absolute top-1/2 -translate-y-1/2 bg-white border-gray-200 text-red-700 hover:bg-red-500 hover:text-white shadow-lg" />
+            </Carousel>
+
+            {/* Carousel Indicators */}
+            <div className="flex justify-center mt-12 space-x-3">
+              {carouselData.map((_, index) => (
+                <button
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === current
+                      ? "bg-red-600 w-8"
+                      : "bg-gray-300 hover:bg-gray-400"
+                  }`}
+                  onClick={() => api?.scrollTo(index)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Trust Section */}
+        <section className="bg-gray-50 py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6">
+                We believe remarkable things happen when people care
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed mb-12">
+                InsuranceCo takes on the risk and provides the coverage and
+                service you need to help protect the things that are important
+                to you – your home, your car, your valuables and your business.
+              </p>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div className="text-center">
+                  <div className="text-3xl font-light text-red-600 mb-2">
+                    170+
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Years of Experience
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-light text-red-600 mb-2">
+                    30K+
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Dedicated Employees
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-light text-red-600 mb-2">
+                    15K+
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Independent Agents
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-light text-red-600 mb-2">4</div>
+                  <div className="text-sm text-gray-600">Countries Served</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Coverage Section */}
+        <section className="py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6">
+                Comprehensive Protection
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                From personal to business insurance, we provide the coverage you
+                need with the care you deserve.
               </p>
             </div>
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Entity
-            </Button>
-          </div>
-        </div>
-      </header>
 
-      {/* Stats Overview */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Organizations
-              </CardTitle>
-              <Building className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {data.organizations.length}
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center p-8 rounded-2xl hover:bg-gray-50 transition-colors duration-200">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-2xl mb-6">
+                  <Home className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-4">
+                  Personal Insurance
+                </h3>
+                <p className="text-gray-600">
+                  Protect your home, auto, and personal belongings with
+                  comprehensive coverage.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Teams</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.teams.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Circles</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.circles.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">People</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.people.length}</div>
-            </CardContent>
-          </Card>
-        </div>
-        <Card className="relative overflow-auto w-full h-full">
-          <OrganizationChart
-            data={data}
-            onEditEntity={openEditModal}
-          />
-        </Card>
-      </div>
 
-      {/* Modals */}
-      <AddEntityModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAdd={handleAddEntity}
-        data={data}
-      />
+              <div className="text-center p-8 rounded-2xl hover:bg-gray-50 transition-colors duration-200">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-2xl mb-6">
+                  <Building className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-4">
+                  Business Insurance
+                </h3>
+                <p className="text-gray-600">
+                  Safeguard your business with tailored commercial insurance
+                  solutions.
+                </p>
+              </div>
 
-      {editingEntity && (
-        <EditEntityModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingEntity(null);
-          }}
-          onEdit={handleEditEntity}
-          entityType={editingEntity.type}
-          entity={editingEntity.entity}
-          data={data}
-        />
-      )}
+              <div className="text-center p-8 rounded-2xl hover:bg-gray-50 transition-colors duration-200">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-50 rounded-2xl mb-6">
+                  <Shield className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-900 mb-4">
+                  Specialty Insurance
+                </h3>
+                <p className="text-gray-600">
+                  Specialized coverage for unique risks and high-value assets.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
